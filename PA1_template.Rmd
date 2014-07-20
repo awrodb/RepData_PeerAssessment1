@@ -1,7 +1,8 @@
 # Reproducible Research: Peer Assessment 1
 
-```{r}
-
+```{recho=TRUE}
+require(knitr)
+opts_chunk$set( fig.path = 'figures/' )
 ```
 
 
@@ -88,19 +89,12 @@ for (r in 1:rr){
 ```
 
 Plot:
-
-
 ```{r}
-s1<-aggregate(d$steps, list(d$date), sum) 
-colnames(s1)<-c("date", "sum_per_day") 
+s1<-aggregate(d$steps, list(d$date), sum) # mette insieme b$step , d$date e sommatoria dei passi fatti in un giorno
+colnames(s1)<-c("date", "sum_per_day") #definisco i nomi delle colonne
 plot(s1$date, s1$sum_per_day, type = "h", xlab = "days", ylab = "total number of steps", main = " Total number of steps taken each day")
 ```
-
-
-
-
-
-
+Table:
 ```{r}
 m1<-aggregate(d$steps, list(d$date), mean)
 colnames(m1)<-c("date", "mean_per_day")
@@ -111,7 +105,6 @@ colnames(m1)<-c("date", "new_mean", "new_median")
 m1$date<-as.character(m1$date)
 ```
 
-Table:
 ```{r, results="asis"}
 library(xtable)
 mt1<-xtable(m1)
@@ -144,16 +137,19 @@ mwd<-aggregate(mweekday$steps, list(mweekday$interval), mean)
 colnames(mwd)<-c("interval", "step_average")
 average<-aggregate(ddf$steps, list(ddf$interval), mean)
 colnames(average)<-c("interval", "step_average")
-mw$diff_mean <- mw$step_average-average$step_average
-mwd$diff_mean <- mwd$step_average-average$step_average
+zn <-c("interval", "step_average", "weekdays")
+
 ```
 
 Panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
-The number of steps are derived by (mean of weekend or weekday steps in i(th) interval - mean of all day steps in the i(th) interval)
 
 ```{r}
-par(mfrow = c(2,1))
-plot(mw$interval, mw$diff_mean, type = "l", xlab = "interval", ylab = "Number of steps", main="Weekend")
-plot(mwd$interval, mwd$diff_mean, type = "l", xlab = "interval", ylab = "Number of steps", main="Weekday")
+mw[,3]<- "Weekend"
+mwd[,3]<- "Weekday"
+colnames(mw)<-zn
+colnames(mwd)<-zn
+mw1<-rbind(mw,mwd)
+library(lattice)
+xyplot(step_average~interval|weekdays, data=mw1, type ="l", layout = c(1,2), xlab = "interval", ylab = "Number of steps")
 ```
 
