@@ -1,20 +1,159 @@
 # Reproducible Research: Peer Assessment 1
 
+```{r}
+
+```
+
 
 ## Loading and preprocessing the data
 
+First of all I will load the data
 
+```{r}
+a<-read.csv("activity.csv")
+b<-subset(a, a$steps!=is.na(a$steps))
+b$date<-as.vector(b$date)
+b$date<-as.Date(b$date, "%Y-%m-%d")
+s<-aggregate(b$steps, list(b$date), sum)
+colnames(s)<-c("date", "sum_per_day")
+```
 
 ## What is mean total number of steps taken per day?
 
+This is the total number of steps taken per day!
 
+```{r}
+plot(s$date, s$sum_per_day, type = "h", xlab = "days", ylab = "total number of steps", main = " Total number of steps taken each day")
+```
+
+Now here the calculation of *Mean* and *Median* per day
+
+```{r}
+m<-aggregate(b$steps, list(b$date), mean)
+colnames(m)<-c("date", "mean_per_day")
+me<-aggregate(b$steps, list(b$date), median)
+colnames(me)<-c("date", "median")
+m<-cbind(m, me$median)
+colnames(m)<-c("date", "mean", "median")
+m$date<-as.character(m$date)
+```
+
+The result in this Table:
+```{r, results="asis"}
+library(xtable)
+mt<-xtable(m)
+print(mt, type="html")
+```
 
 ## What is the average daily activity pattern?
 
+```{r}
+d<-a
+d$date<-as.vector(d$date)
+d$date<-as.Date(d$date, "%Y-%m-%d")
+er<-aggregate(d$steps, list(d$interval), mean, na.rm=TRUE)
+colnames(er)<-c("interval", "mean_per_interval")
+plot(er[,1], er[,2], type="l", xlab = "5-minute interval", ylab = " average number of steps taken", main = "Average daily activity pattern")
+```
+
+```{r}
+z<-subset(er, er$mean_per_interval == max(er[,2]))
+```
+
+**`r z[,1]`**  is the 5-minute interval contains the maximum number of steps, on average across all the days in the dataset. The average of the steps is **`r z[,2]`**.
 
 
 ## Imputing missing values
+```{r}
+not_value<-a[is.na(a[,1]),]
+i<-length(not_value[,1])
+```
+The total number of missing values in the dataset is: **`r i`**.
 
+```{r}
+t<-aggregate(not_value$interval, list(not_value$date), factor)
+u1<-as.vector(t[,1])
+rownames(t)<-u1
+u2<-as.data.frame(t[,2])
+rr<-length(u1)
+rr2<-length(er[,1])
+for (r in 1:rr){
+        uu<-d[d$date == u1[r],]
+        line<-NULL
+        line<-rownames(uu)
+        for (w in 1:rr2){
+                d[line[w],1]<-er[w,2]                        
+        }
+}
+```
+
+Plot:
+
+
+```{r}
+s1<-aggregate(d$steps, list(d$date), sum) 
+colnames(s1)<-c("date", "sum_per_day") 
+plot(s1$date, s1$sum_per_day, type = "h", xlab = "days", ylab = "total number of steps", main = " Total number of steps taken each day")
+```
+
+
+
+
+
+
+```{r}
+m1<-aggregate(d$steps, list(d$date), mean)
+colnames(m1)<-c("date", "mean_per_day")
+me1<-aggregate(d$steps, list(d$date), median)
+colnames(me1)<-c("date", "median")
+m1<-cbind(m1, me1$median)
+colnames(m1)<-c("date", "new_mean", "new_median")
+m1$date<-as.character(m1$date)
+```
+
+Table:
+```{r, results="asis"}
+library(xtable)
+mt1<-xtable(m1)
+print(mt1, type="html")
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+ddf<-d
+ddf<-cbind(ddf,weekdays(d$date))
+ddf[,5]<-NA
+cnames<-c("steps","date","interval","weekdays", "weekend")
+colnames(ddf)<-cnames
+p<-length(ddf$weekdays)
+for (t in 1:p){
+        if ((ddf$weekdays[t]=="Friday")|(ddf$weekdays[t]=="Saturday")|(ddf$weekdays[t]=="Sunday")){
+                ddf[t,5]<-TRUE
+        }
+        else{
+                ddf[t,5]<-FALSE  
+        }
+}
+mweeked <-subset(ddf, ddf$weekend == TRUE)
+mw<-aggregate(mweeked$steps, list(mweeked$interval), mean)
+colnames(mw)<-c("interval", "step_average")
+mweekday <- subset(ddf, ddf$weekend == FALSE)
+mwd<-aggregate(mweekday$steps, list(mweekday$interval), mean)
+colnames(mwd)<-c("interval", "step_average")
+average<-aggregate(ddf$steps, list(ddf$interval), mean)
+colnames(average)<-c("interval", "step_average")
+mw$diff_mean <- mw$step_average-average$step_average
+mwd$diff_mean <- mwd$step_average-average$step_average
+```
+
+Panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+The number of steps are derived by (mean of weekend or weekday steps in i(th) interval - mean of all day steps in the i(th) interval)
+
+```{r}
+par(mfrow = c(2,1))
+plot(mw$interval, mw$diff_mean, type = "l", xlab = "interval", ylab = "Number of steps", main="Weekend")
+plot(mwd$interval, mwd$diff_mean, type = "l", xlab = "interval", ylab = "Number of steps", main="Weekday")
+```
+
